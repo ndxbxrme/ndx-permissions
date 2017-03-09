@@ -1,18 +1,18 @@
 {
   "name": "ndx-permissions",
-  "version": "0.0.1",
-  "description": "",
+  "version": "0.0.2",
+  "description": "database permissions for ndx-framework",
   "main": "build/index.js",
   "scripts": {
     "test": "node build/test.js"
   },
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/ndxbxrme/ndx-permissions"
   },
-  "author": "",
+  "author": "ndxbxrme",
   "license": "MIT",
-  "homepage": "",
+  "homepage": "https://github.com/ndxbxrme/ndx-permissions",
   "devDependencies": {
     "grunt": "^1.0.1",
     "grunt-cli": "^1.2.0",
