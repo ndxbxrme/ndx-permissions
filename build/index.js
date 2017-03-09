@@ -66,13 +66,9 @@
         return check('delete', args.table);
       }
     });
-    return {
-      setPermissions: function(_permissions) {
+    return ndx.database.permissions = {
+      set: function(_permissions) {
         permissions = _permissions;
-      },
-      setAuthenticate: function(authenticateFn) {
-        var authenticate;
-        authenticate = authenticateFn;
       }
     };
   };

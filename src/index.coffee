@@ -36,9 +36,7 @@ module.exports = (ndx) ->
   ndx.database.on 'preDelete', (args) ->
     if not args.isServer
       check 'delete', args.table
-  setPermissions: (_permissions) ->
-    permissions = _permissions
-    return
-  setAuthenticate: (authenticateFn) ->
-    authenticate = authenticateFn
-    return
+  ndx.database.permissions = 
+    set: (_permissions) ->
+      permissions = _permissions
+      return
