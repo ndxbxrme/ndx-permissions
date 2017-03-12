@@ -7,7 +7,7 @@
       var permissionOp, permissionTable;
       if (permissionTable = permissions[table]) {
         if (permissionOp = permissionTable[op] || permissionTable['all']) {
-          if (authenticate && authenticate(permissionOp, obj)) {
+          if (ndx.authenticate && ndx.authenticate(permissionOp, obj)) {
             true;
           } else {
             throw 'Not authorized';

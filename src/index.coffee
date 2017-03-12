@@ -5,7 +5,7 @@ module.exports = (ndx) ->
   check = (op, table, obj) ->
     if permissionTable = permissions[table]
       if permissionOp = (permissionTable[op] or permissionTable['all'])
-        if authenticate and authenticate permissionOp, obj
+        if ndx.authenticate and ndx.authenticate permissionOp, obj
           true
         else
           throw 'Not authorized'
