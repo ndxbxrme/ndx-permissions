@@ -1,6 +1,6 @@
 {
   "name": "ndx-permissions",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "database permissions for ndx-framework",
   "main": "build/index.js",
   "scripts": {
