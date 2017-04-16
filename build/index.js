@@ -24,47 +24,50 @@
         }
       }
     };
-    ndx.database.on('preSelect', function(args) {
+    ndx.database.on('preSelect', function(args, cb) {
       if (!args.isServer) {
-        return check('select', args.table);
+        check('select', args.table);
       }
+      return cb();
     });
-    ndx.database.on('select', function(args) {
-      var i, item, len, ref, results, transformer;
+    ndx.database.on('select', function(args, cb) {
+      var i, item, len, ref, transformer;
       if (!args.isServer) {
         if (transformer = getTransformer('select', args.table)) {
           ref = args.objs;
-          results = [];
           for (i = 0, len = ref.length; i < len; i++) {
             item = ref[i];
-            results.push(item = objtrans(item, transformer));
+            item = objtrans(item, transformer);
           }
-          return results;
         }
       }
+      return cb();
     });
-    ndx.database.on('preUpdate', function(args) {
+    ndx.database.on('preUpdate', function(args, cb) {
       var transformer;
       if (!args.isServer) {
         check('update', args.table, args.obj);
         if (transformer = getTransformer('update', args.table)) {
-          return args.obj = objtrans(args.obj, transformer);
+          args.obj = objtrans(args.obj, transformer);
         }
       }
+      return cb();
     });
-    ndx.database.on('preInsert', function(args) {
+    ndx.database.on('preInsert', function(args, cb) {
       var transformer;
       if (!args.isServer) {
         check('insert', args.table, args.obj);
         if (transformer = getTransformer('insert', args.table)) {
-          return args.obj = objtrans(args.obj, transformer);
+          args.obj = objtrans(args.obj, transformer);
         }
       }
+      return cb();
     });
-    ndx.database.on('preDelete', function(args) {
+    ndx.database.on('preDelete', function(args, cb) {
       if (!args.isServer) {
-        return check('delete', args.table);
+        check('delete', args.table);
       }
+      return cb();
     });
     return ndx.database.permissions = {
       set: function(_permissions) {
