@@ -1,6 +1,6 @@
 {
   "name": "ndx-permissions",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "database permissions for ndx-framework",
   "main": "build/index.js",
   "scripts": {
@@ -20,6 +20,10 @@
     "grunt-contrib-coffee": "^1.0.0",
     "grunt-contrib-nodeunit": "^1.0.0",
     "grunt-contrib-watch": "^1.0.0",
-    "load-grunt-tasks": "^3.5.2"
+    "load-grunt-tasks": "^3.5.2",
+    "ndx-server": "^0.6.1"
+  },
+  "dependencies": {
+    "async": "^2.3.0"
   }
 }

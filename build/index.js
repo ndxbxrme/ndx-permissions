@@ -1,20 +1,51 @@
 (function() {
   'use strict';
+  var async;
+
+  async = require('async');
+
   module.exports = function(ndx) {
-    var check, getTransformer, permissions;
+    var check, checkRole, getTransformer, permissions;
     permissions = {};
-    check = function(op, table, obj) {
-      var permissionOp, permissionTable;
-      if (permissionTable = permissions[table]) {
-        if (permissionOp = permissionTable[op] || permissionTable['all']) {
-          if (ndx.authenticate && ndx.authenticate(permissionOp, obj)) {
-            true;
-          } else {
-            throw 'Not authorized';
-          }
-        }
+    checkRole = function(role, args, cb) {
+      var truth, type;
+      type = Object.prototype.toString.call(role);
+      if (type === '[object Array]') {
+        truth = false;
+        return async.eachSeries(role, function(myroll, callback) {
+          return checkRole(myroll, args, function(mytruth) {
+            truth = truth || mytruth;
+            return callback();
+          });
+        }, function() {
+          return cb(truth);
+        });
+      } else if (type === '[object String]') {
+        return cb(args.user.hasRole(role));
+      } else if (type === '[object Function]') {
+        return role({
+          user: args.user,
+          objs: args.objs
+        }, cb);
       }
-      return true;
+    };
+    check = function(op, args, cb) {
+      var permissionOp, permissionTable;
+      if (permissionTable = permissions[args.table]) {
+        if (permissionOp = permissionTable[op] || permissionTable['all']) {
+          return checkRole(permissionOp, args, function(result) {
+            if (result) {
+              return cb(result);
+            } else {
+              throw 'Not authorized';
+            }
+          });
+        } else {
+          return cb(true);
+        }
+      } else {
+        return cb(true);
+      }
     };
     getTransformer = function(op, table, obj) {
       var permissionOp, permissionTable;
@@ -25,14 +56,11 @@
       }
     };
     ndx.database.on('preSelect', function(args, cb) {
-      if (!args.isServer) {
-        check('select', args.table);
-      }
-      return cb();
+      return check('select', args, cb);
     });
     ndx.database.on('select', function(args, cb) {
-      var i, item, len, ref, transformer;
-      if (!args.isServer) {
+      return check('select', args, function(result) {
+        var i, item, len, ref, transformer;
         if (transformer = getTransformer('select', args.table)) {
           ref = args.objs;
           for (i = 0, len = ref.length; i < len; i++) {
@@ -40,34 +68,29 @@
             item = objtrans(item, transformer);
           }
         }
-      }
-      return cb();
+        return cb(true);
+      });
     });
     ndx.database.on('preUpdate', function(args, cb) {
-      var transformer;
-      if (!args.isServer) {
-        check('update', args.table, args.obj);
+      return check('update', args, function(result) {
+        var transformer;
         if (transformer = getTransformer('update', args.table)) {
           args.obj = objtrans(args.obj, transformer);
         }
-      }
-      return cb();
+        return cb();
+      });
     });
     ndx.database.on('preInsert', function(args, cb) {
-      var transformer;
-      if (!args.isServer) {
-        check('insert', args.table, args.obj);
+      return check('insert', args, function(result) {
+        var transformer;
         if (transformer = getTransformer('insert', args.table)) {
           args.obj = objtrans(args.obj, transformer);
         }
-      }
-      return cb();
+        return cb();
+      });
     });
     ndx.database.on('preDelete', function(args, cb) {
-      if (!args.isServer) {
-        check('delete', args.table);
-      }
-      return cb();
+      return check('delete', args, cb);
     });
     return ndx.database.permissions = {
       set: function(_permissions) {

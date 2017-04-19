@@ -1,46 +1,62 @@
 'use strict'
+async = require 'async'
 
 module.exports = (ndx) ->
   permissions = {}
-  check = (op, table, obj) ->
-    if permissionTable = permissions[table]
+  checkRole = (role, args, cb) ->
+    type = Object.prototype.toString.call role
+    if type is '[object Array]'
+      truth = false
+      async.eachSeries role, (myroll, callback) ->
+        checkRole myroll, args, (mytruth) ->
+          truth = truth or mytruth
+          callback()
+      , ->
+        cb truth
+    else if type is '[object String]'
+      cb args.user.hasRole role
+    else if type is '[object Function]'
+      role 
+        user: args.user
+        objs: args.objs
+      , cb
+  check = (op, args, cb) ->
+    if permissionTable = permissions[args.table]
       if permissionOp = (permissionTable[op] or permissionTable['all'])
-        if ndx.authenticate and ndx.authenticate permissionOp, obj
-          true
-        else
-          throw 'Not authorized'
-    true
+        checkRole permissionOp, args, (result) ->
+          if result
+            cb result
+          else
+            throw 'Not authorized'
+      else
+        cb true
+    else
+      cb true
   getTransformer = (op, table, obj) ->
     if permissionTable = permissions[table]
       if permissionOp = (permissionTable[op] or permissionTable['all'])
         return permissionOp.transformer
     return
   ndx.database.on 'preSelect', (args, cb) ->
-    if not args.isServer
-      check 'select', args.table
-    cb()
+    check 'select', args, cb
   ndx.database.on 'select', (args, cb) ->
-    if not args.isServer
+    check 'select', args, (result) ->
       if transformer = getTransformer 'select', args.table
         for item in args.objs
           item = objtrans item, transformer
-    cb()
+      cb true
   ndx.database.on 'preUpdate', (args, cb) ->
-    if not args.isServer
-      check 'update', args.table, args.obj
+    check 'update', args, (result) ->
       if transformer = getTransformer 'update', args.table
         args.obj = objtrans args.obj, transformer
-    cb()
+      cb()
   ndx.database.on 'preInsert', (args, cb) ->
-    if not args.isServer
-      check 'insert', args.table, args.obj
+    check 'insert', args, (result) ->
       if transformer = getTransformer 'insert', args.table
         args.obj = objtrans args.obj, transformer
-    cb()
+      cb()
   ndx.database.on 'preDelete', (args, cb) ->
-    if not args.isServer
-      check 'delete', args.table
-    cb()
+    check 'delete', args, cb
   ndx.database.permissions = 
     set: (_permissions) ->
       permissions = _permissions
