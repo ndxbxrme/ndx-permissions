@@ -20,9 +20,7 @@ module.exports = (ndx) ->
     else if type is '[object String]'
       cb args.user.hasRole role
     else if type is '[object Function]'
-      role 
-        user: args.user
-        objs: args.objs
+      role args
       , cb
   check = (op, args, cb) ->
     if permissionTable = permissions[args.table]

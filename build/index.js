@@ -29,10 +29,7 @@
       } else if (type === '[object String]') {
         return cb(args.user.hasRole(role));
       } else if (type === '[object Function]') {
-        return role({
-          user: args.user,
-          objs: args.objs
-        }, cb);
+        return role(args, cb);
       }
     };
     check = function(op, args, cb) {
