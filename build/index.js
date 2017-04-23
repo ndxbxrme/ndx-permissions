@@ -34,6 +34,7 @@
     };
     check = function(op, args, cb) {
       var permissionOp, permissionTable;
+      args.op = op;
       if (permissionTable = permissions[args.table]) {
         if (permissionOp = permissionTable[op] || permissionTable['all']) {
           return checkRole(permissionOp.roles || permissionOp, args, function(result) {
