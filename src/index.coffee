@@ -4,10 +4,14 @@ async = require 'async'
 module.exports = (ndx) ->
   permissions = {}
   checkRole = (role, args, cb) ->
+    if not args.user
+      return cb true
     type = Object.prototype.toString.call role
     if type is '[object Array]'
       truth = false
       async.eachSeries role, (myroll, callback) ->
+        if truth
+          return callback()
         checkRole myroll, args, (mytruth) ->
           truth = truth or mytruth
           callback()
@@ -23,7 +27,7 @@ module.exports = (ndx) ->
   check = (op, args, cb) ->
     if permissionTable = permissions[args.table]
       if permissionOp = (permissionTable[op] or permissionTable['all'])
-        checkRole permissionOp, args, (result) ->
+        checkRole (permissionOp.roles or permissionOp), args, (result) ->
           if result
             cb result
           else
