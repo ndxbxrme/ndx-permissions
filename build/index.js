@@ -5,8 +5,9 @@
   async = require('async');
 
   module.exports = function(ndx) {
-    var check, checkRole, getTransformer, permissions;
-    permissions = {};
+    var check, checkRole, dbPermissions, getTransformer, restPermissions;
+    dbPermissions = {};
+    restPermissions = {};
     checkRole = function(role, args, cb) {
       var truth, type;
       if (!args.user) {
@@ -32,16 +33,16 @@
         return role(args, cb);
       }
     };
-    check = function(op, args, cb) {
+    check = function(op, args, mypermissions, cb) {
       var permissionOp, permissionTable;
       args.op = op;
-      if (permissionTable = permissions[args.table]) {
+      if (permissionTable = mypermissions[args.table]) {
         if (permissionOp = permissionTable[op] || permissionTable['all']) {
           return checkRole(permissionOp.roles || permissionOp, args, function(result) {
             if (result) {
               return cb(result);
             } else {
-              throw 'Not authorized';
+              return cb(false);
             }
           });
         } else {
@@ -51,56 +52,78 @@
         return cb(true);
       }
     };
-    getTransformer = function(op, table, obj) {
+    getTransformer = function(op, table, mypermissions, obj) {
       var permissionOp, permissionTable;
-      if (permissionTable = permissions[table]) {
+      if (permissionTable = mypermissions[table]) {
         if (permissionOp = permissionTable[op] || permissionTable['all']) {
           return permissionOp.transformer;
         }
       }
     };
     ndx.database.on('preSelect', function(args, cb) {
-      return check('select', args, cb);
+      return check('select', args, dbPermissions, cb);
     });
     ndx.database.on('select', function(args, cb) {
-      return check('select', args, function(result) {
+      return check('select', args, dbPermissions, function(result) {
         var i, item, len, ref, transformer;
-        if (transformer = getTransformer('select', args.table)) {
-          ref = args.objs;
-          for (i = 0, len = ref.length; i < len; i++) {
-            item = ref[i];
-            item = objtrans(item, transformer);
+        if (result) {
+          if (transformer = getTransformer('select', args.table, dbPermissions)) {
+            ref = args.objs;
+            for (i = 0, len = ref.length; i < len; i++) {
+              item = ref[i];
+              item = objtrans(item, transformer);
+            }
           }
         }
-        return cb(true);
+        return cb(result);
       });
     });
     ndx.database.on('preUpdate', function(args, cb) {
-      return check('update', args, function(result) {
+      return check('update', args, dbPermissions, function(result) {
         var transformer;
-        if (transformer = getTransformer('update', args.table)) {
-          args.obj = objtrans(args.obj, transformer);
+        if (result) {
+          if (transformer = getTransformer('update', args.table, dbPermissions)) {
+            args.obj = objtrans(args.obj, transformer);
+          }
         }
-        return cb();
+        return cb(result);
       });
     });
     ndx.database.on('preInsert', function(args, cb) {
-      return check('insert', args, function(result) {
+      return check('insert', args, dbPermissions, function(result) {
         var transformer;
-        if (transformer = getTransformer('insert', args.table)) {
-          args.obj = objtrans(args.obj, transformer);
+        if (result) {
+          if (transformer = getTransformer('insert', args.table, dbPermissions)) {
+            args.obj = objtrans(args.obj, transformer);
+          }
         }
-        return cb();
+        return cb(result);
       });
     });
     ndx.database.on('preDelete', function(args, cb) {
-      return check('delete', args, cb);
+      return check('delete', args, dbPermissions, cb);
     });
-    return ndx.database.permissions = {
+    ndx.database.permissions = {
       set: function(_permissions) {
-        permissions = _permissions;
+        dbPermissions = _permissions;
       }
     };
+    if (ndx.rest) {
+      ndx.rest.on('update', function(args, cb) {
+        return check('update', args, restPermissions, cb);
+      });
+      ndx.rest.on('insert', function(args, cb) {
+        return check('insert', args, restPermissions, cb);
+      });
+      ndx.rest.on('delete', function(args, cb) {
+        return check('delete', args, restPermissions, cb);
+      });
+      return ndx.rest.permissions = {
+        set: function(_permissions) {
+          dbPermissions = _permissions;
+        }
+      };
+    }
   };
 
 }).call(this);
