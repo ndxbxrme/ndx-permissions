@@ -120,7 +120,7 @@
       });
       return ndx.rest.permissions = {
         set: function(_permissions) {
-          dbPermissions = _permissions;
+          restPermissions = _permissions;
         }
       };
     }

@@ -77,5 +77,5 @@ module.exports = (ndx) ->
       check 'delete', args, restPermissions, cb
     ndx.rest.permissions =
       set: (_permissions) ->
-        dbPermissions = _permissions
+        restPermissions = _permissions
         return
