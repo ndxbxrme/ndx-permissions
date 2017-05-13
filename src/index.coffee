@@ -23,6 +23,11 @@ module.exports = (ndx) ->
     else if type is '[object Function]'
       role args
       , cb
+  checkRoles = (objRoles, userRoles) ->
+    for role in userRoles
+      if objRoles.indexOf(role) isnt -1
+        return true
+    return false
   check = (op, args, mypermissions, cb) ->
     args.op = op
     if permissionTable = mypermissions[args.table]
@@ -79,3 +84,114 @@ module.exports = (ndx) ->
       set: (_permissions) ->
         restPermissions = _permissions
         return
+  ndx.permissions =
+    #select functions
+    anyUser: ->
+      (args, cb) ->
+        if args.user
+          cb true
+        else
+          cb false
+    byId: (idField, id) ->
+      (args, cb) ->
+        idField = idField or 'user'
+        id = id or args.user[ndx.settings.AUTO_ID]
+        if args.objs
+          i = args.objs.length
+          while i-- > 0
+            if args.objs[i][idField] isnt id
+              args.objs.splice i, 1
+          return cb true
+        else if args.obj
+          if args.obj[idField] isnt id
+            return cb false
+        cb true
+    byUserHasObj: (userField, objField) ->
+      objField = objField or ndx.settings.AUTO_ID
+      (args, cb) ->
+        userField = userField or args.table
+        if args.objs
+          if args.user[userField]
+            i = args.objs.length
+            while i-- > 0
+              if args.user[userField] isnt args.objs[i][objField]
+                args.objs.splice i, 1
+          else
+            args.objs.length = 0
+          return cb true
+        else if args.obj
+          if args.user[userField]
+            if args.user[userField] isnt args.obj[objField]
+              return cb false
+            else
+              return cb true
+          else
+            return cb false
+        return cb true
+    byUserHasObjMulti: (userField, objField) ->
+      objField = objField or ndx.settings.AUTO_ID
+      (args, cb) ->
+        userField = userField or args.table
+        if args.objs
+          if args.user[userField]
+            i = args.objs.length
+            while i-- > 0
+              if not args.user[userField][args.objs[i][objField]]
+                args.objs.splice i, 1
+          else
+            args.objs.length = 0
+          return cb true
+        else if args.obj
+          if args.user[userField]
+            if not args.user[userField][args.obj[objField]]
+              return cb false
+            else
+              return cb true
+          else
+            return cb false
+        return cb true
+    byUserHasObjRolesMulti: (userField, objField, roles) ->
+      objField = objField or ndx.settings.AUTO_ID
+      (args, cb) ->
+        userField = userField or args.table
+        if args.objs
+          if args.user[userField]
+            i = args.objs.length
+            while i-- > 0
+              if not args.user[userField][args.objs[i][objField]]
+                args.objs.splice i, 1
+              else
+                if not checkRoles args.user[userField][args.objs[i][objField]]
+                  args.objs.splice i, 1
+          else
+            args.objs.length = 0
+          return cb true
+        else if args.obj
+          if args.user[userField]
+            if not args.user[userField][args.obj[objField]]
+              return cb false
+            else
+              if not checkRoles args.user[userField][args.obj[objField]]
+                return cb false
+              else
+                return cb true
+          else
+            return cb false
+        return cb true
+    #insert functions
+    addObjToUser: (args, cb) ->
+      updateObj = {}
+      updateObj[args.table] = args.id
+      whereObj = {}
+      whereObj[ndx.settings.AUTO_ID] = args.user._id
+      ndx.database.update ndx.settings.USER_TABLE, updateObj, whereObj, cb
+    addObjToUserMulti: (args, cb) ->
+      if not args.user[args.table]
+        args.user[args.table] = {}
+      args.user[args.table][args.id] = true
+      updateObj = {}
+      updateObj[args.table] = args.user[args.table]
+      whereObj = {}
+      whereObj[ndx.settings.AUTO_ID] = args.user._id
+      ndx.database.update ndx.settings.USER_TABLE, updateObj, whereObj, cb
+    

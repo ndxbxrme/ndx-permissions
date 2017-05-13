@@ -5,7 +5,7 @@
   async = require('async');
 
   module.exports = function(ndx) {
-    var check, checkRole, dbPermissions, getTransformer, restPermissions;
+    var check, checkRole, checkRoles, dbPermissions, getTransformer, restPermissions;
     dbPermissions = {};
     restPermissions = {};
     checkRole = function(role, args, cb) {
@@ -32,6 +32,16 @@
       } else if (type === '[object Function]') {
         return role(args, cb);
       }
+    };
+    checkRoles = function(objRoles, userRoles) {
+      var j, len, role;
+      for (j = 0, len = userRoles.length; j < len; j++) {
+        role = userRoles[j];
+        if (objRoles.indexOf(role) !== -1) {
+          return true;
+        }
+      }
+      return false;
     };
     check = function(op, args, mypermissions, cb) {
       var permissionOp, permissionTable;
@@ -65,12 +75,12 @@
     });
     ndx.database.on('select', function(args, cb) {
       return check('select', args, dbPermissions, function(result) {
-        var i, item, len, ref, transformer;
+        var item, j, len, ref, transformer;
         if (result) {
           if (transformer = getTransformer('select', args.table, dbPermissions)) {
             ref = args.objs;
-            for (i = 0, len = ref.length; i < len; i++) {
-              item = ref[i];
+            for (j = 0, len = ref.length; j < len; j++) {
+              item = ref[j];
               item = objtrans(item, transformer);
             }
           }
@@ -118,12 +128,165 @@
       ndx.rest.on('delete', function(args, cb) {
         return check('delete', args, restPermissions, cb);
       });
-      return ndx.rest.permissions = {
+      ndx.rest.permissions = {
         set: function(_permissions) {
           restPermissions = _permissions;
         }
       };
     }
+    return ndx.permissions = {
+      anyUser: function() {
+        return function(args, cb) {
+          if (args.user) {
+            return cb(true);
+          } else {
+            return cb(false);
+          }
+        };
+      },
+      byId: function(idField, id) {
+        return function(args, cb) {
+          var i;
+          idField = idField || 'user';
+          id = id || args.user[ndx.settings.AUTO_ID];
+          if (args.objs) {
+            i = args.objs.length;
+            while (i-- > 0) {
+              if (args.objs[i][idField] !== id) {
+                args.objs.splice(i, 1);
+              }
+            }
+            return cb(true);
+          } else if (args.obj) {
+            if (args.obj[idField] !== id) {
+              return cb(false);
+            }
+          }
+          return cb(true);
+        };
+      },
+      byUserHasObj: function(userField, objField) {
+        objField = objField || ndx.settings.AUTO_ID;
+        return function(args, cb) {
+          var i;
+          userField = userField || args.table;
+          if (args.objs) {
+            if (args.user[userField]) {
+              i = args.objs.length;
+              while (i-- > 0) {
+                if (args.user[userField] !== args.objs[i][objField]) {
+                  args.objs.splice(i, 1);
+                }
+              }
+            } else {
+              args.objs.length = 0;
+            }
+            return cb(true);
+          } else if (args.obj) {
+            if (args.user[userField]) {
+              if (args.user[userField] !== args.obj[objField]) {
+                return cb(false);
+              } else {
+                return cb(true);
+              }
+            } else {
+              return cb(false);
+            }
+          }
+          return cb(true);
+        };
+      },
+      byUserHasObjMulti: function(userField, objField) {
+        objField = objField || ndx.settings.AUTO_ID;
+        return function(args, cb) {
+          var i;
+          userField = userField || args.table;
+          if (args.objs) {
+            if (args.user[userField]) {
+              i = args.objs.length;
+              while (i-- > 0) {
+                if (!args.user[userField][args.objs[i][objField]]) {
+                  args.objs.splice(i, 1);
+                }
+              }
+            } else {
+              args.objs.length = 0;
+            }
+            return cb(true);
+          } else if (args.obj) {
+            if (args.user[userField]) {
+              if (!args.user[userField][args.obj[objField]]) {
+                return cb(false);
+              } else {
+                return cb(true);
+              }
+            } else {
+              return cb(false);
+            }
+          }
+          return cb(true);
+        };
+      },
+      byUserHasObjRolesMulti: function(userField, objField, roles) {
+        objField = objField || ndx.settings.AUTO_ID;
+        return function(args, cb) {
+          var i;
+          userField = userField || args.table;
+          if (args.objs) {
+            if (args.user[userField]) {
+              i = args.objs.length;
+              while (i-- > 0) {
+                if (!args.user[userField][args.objs[i][objField]]) {
+                  args.objs.splice(i, 1);
+                } else {
+                  if (!checkRoles(args.user[userField][args.objs[i][objField]])) {
+                    args.objs.splice(i, 1);
+                  }
+                }
+              }
+            } else {
+              args.objs.length = 0;
+            }
+            return cb(true);
+          } else if (args.obj) {
+            if (args.user[userField]) {
+              if (!args.user[userField][args.obj[objField]]) {
+                return cb(false);
+              } else {
+                if (!checkRoles(args.user[userField][args.obj[objField]])) {
+                  return cb(false);
+                } else {
+                  return cb(true);
+                }
+              }
+            } else {
+              return cb(false);
+            }
+          }
+          return cb(true);
+        };
+      },
+      addObjToUser: function(args, cb) {
+        var updateObj, whereObj;
+        updateObj = {};
+        updateObj[args.table] = args.id;
+        whereObj = {};
+        whereObj[ndx.settings.AUTO_ID] = args.user._id;
+        return ndx.database.update(ndx.settings.USER_TABLE, updateObj, whereObj, cb);
+      },
+      addObjToUserMulti: function(args, cb) {
+        var updateObj, whereObj;
+        if (!args.user[args.table]) {
+          args.user[args.table] = {};
+        }
+        args.user[args.table][args.id] = true;
+        updateObj = {};
+        updateObj[args.table] = args.user[args.table];
+        whereObj = {};
+        whereObj[ndx.settings.AUTO_ID] = args.user._id;
+        return ndx.database.update(ndx.settings.USER_TABLE, updateObj, whereObj, cb);
+      }
+    };
   };
 
 }).call(this);
