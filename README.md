@@ -2,7 +2,7 @@
 ### database and socket permissions for ndx-framework  
 install with  
 `npm install --save ndx-permissions ndx-user-roles`  
-`ndx-framework` will then auto load the module  
+`ndx-server` will then auto load the module  
 ## what it does
 `ndx-permissions` adds `.permissions.set()` functions to `ndx.database` and `ndx.rest` (if you have `ndx-rest` installed)  
 these functions accept an object that corresponds to the database tables and operations you want to set permissions for  
