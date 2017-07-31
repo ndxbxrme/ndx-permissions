@@ -30,7 +30,7 @@ module.exports = (ndx) ->
     return false
   check = (op, args, mypermissions, cb) ->
     args.op = op
-    if permissionTable = mypermissions[args.table]
+    if permissionTable = (mypermissions[args.table] or mypermissions.all)
       if permissionOp = (permissionTable[op] or permissionTable['all'])
         checkRole (permissionOp.roles or permissionOp), args, (result) ->
           if result
