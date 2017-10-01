@@ -135,6 +135,13 @@
       };
     }
     return ndx.permissions = {
+      check: check,
+      dbPermissions: function() {
+        return dbPermissions;
+      },
+      restPermissions: function() {
+        return restPermissions;
+      },
       anyUser: function() {
         return function(args, cb) {
           if (args.user) {

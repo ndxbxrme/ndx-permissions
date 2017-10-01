@@ -85,6 +85,11 @@ module.exports = (ndx) ->
         restPermissions = _permissions
         return
   ndx.permissions =
+    check: check
+    dbPermissions: ->
+      dbPermissions
+    restPermissions: ->
+      restPermissions
     #select functions
     anyUser: ->
       (args, cb) ->
