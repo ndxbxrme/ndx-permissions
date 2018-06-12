@@ -71,7 +71,7 @@
       }
     };
     ndx.database.on('preSelect', function(args, cb) {
-      return check('select', args, dbPermissions, cb);
+      return check('preSelect', args, dbPermissions, cb);
     });
     ndx.database.on('select', function(args, cb) {
       return check('select', args, dbPermissions, function(result) {

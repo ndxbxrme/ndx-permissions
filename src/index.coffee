@@ -47,7 +47,7 @@ module.exports = (ndx) ->
         return permissionOp.transformer
     return
   ndx.database.on 'preSelect', (args, cb) ->
-    check 'select', args, dbPermissions, cb
+    check 'preSelect', args, dbPermissions, cb
   ndx.database.on 'select', (args, cb) ->
     check 'select', args, dbPermissions, (result) ->
       if result
