@@ -118,14 +118,14 @@
         dbPermissions = _permissions;
       }
     };
-    if (ndx.rest) {
-      ndx.rest.on('update', function(args, cb) {
+    if (ndx.rest && ndx.socket) {
+      ndx.socket.on('update', function(args, cb) {
         return check('update', args, restPermissions, cb);
       });
-      ndx.rest.on('insert', function(args, cb) {
+      ndx.socket.on('insert', function(args, cb) {
         return check('insert', args, restPermissions, cb);
       });
-      ndx.rest.on('delete', function(args, cb) {
+      ndx.socket.on('delete', function(args, cb) {
         return check('delete', args, restPermissions, cb);
       });
       ndx.rest.permissions = {

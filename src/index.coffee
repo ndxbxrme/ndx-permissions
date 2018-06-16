@@ -73,12 +73,12 @@ module.exports = (ndx) ->
     set: (_permissions) ->
       dbPermissions = _permissions
       return
-  if ndx.rest
-    ndx.rest.on 'update', (args, cb) ->
+  if ndx.rest and ndx.socket
+    ndx.socket.on 'update', (args, cb) ->
       check 'update', args, restPermissions, cb
-    ndx.rest.on 'insert', (args, cb) ->
+    ndx.socket.on 'insert', (args, cb) ->
       check 'insert', args, restPermissions, cb
-    ndx.rest.on 'delete', (args, cb) ->
+    ndx.socket.on 'delete', (args, cb) ->
       check 'delete', args, restPermissions, cb
     ndx.rest.permissions =
       set: (_permissions) ->

@@ -1,6 +1,6 @@
 {
   "name": "ndx-permissions",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "database permissions for ndx-framework",
   "main": "build/index.js",
   "scripts": {
@@ -24,6 +24,6 @@
     "ndx-server": "^0.6.1"
   },
   "dependencies": {
-    "async": "^2.3.0"
+    "async": "^2.6.1"
   }
 }
